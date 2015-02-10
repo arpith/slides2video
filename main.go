@@ -1,14 +1,87 @@
 package main
 
-import (
-	"ioutil",
-	"log",
-	"os/exec"
-)
+import "io/ioutil"
+import "log"
+import "os/exec"
+import "flag"
+import "strings"
+import "sync"
+import "strconv"
+import "fmt"
+import "bytes"
+
+var wg sync.WaitGroup
+
+func img2video(imgName string, imgDuration string, outputName string) {
+	defer wg.Done()
+	var stderr bytes.Buffer
+	cmd := exec.Command("ffmpeg", "-loop", "1", "-i", imgName, "-t", imgDuration, "-pix_fmt", "yuv420p", outputName)
+	cmd.Stderr = &stderr
+	err := cmd.Start()
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		log.Printf("Creating "+outputName)
+	}
+	err = cmd.Wait()
+	if err != nil {
+    		log.Printf(fmt.Sprint(err) + ": " + stderr.String())
+		log.Fatal(err)
+	} else {
+		log.Printf("Created "+outputName)
+	}
+}
+
+func concatVideos(numberOfVideos int, listFilename string, outputName string, done chan bool) {
+	var stderr bytes.Buffer
+	cmd := exec.Command("ffmpeg", "-f", "concat", "-i", listFilename, "-c", "copy", outputName)
+	cmd.Stderr = &stderr
+	err := cmd.Start()
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		log.Printf("Creating "+outputName+" using "+listFilename)
+	}
+	err = cmd.Wait()
+	if err != nil {
+    		log.Printf(fmt.Sprint(err) + ": " + stderr.String())
+		log.Fatal(err)
+	} else {
+		log.Printf("Created "+outputName)
+	}
+	done <- true
+}
+
+func addAudio(silentFilename string, audioFilename string, outputName string, done chan bool) {
+	var stderr bytes.Buffer
+	cmd := exec.Command("ffmpeg", "-i", silentFilename, "-i", audioFilename, "-map", "0", "-map", "1", "-codec" ,"copy", "-shortest", outputName)
+	cmd.Stderr = &stderr
+	err := cmd.Start()
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		log.Printf("Creating "+outputName+" from "+silentFilename+" and "+audioFilename)
+	}
+	err = cmd.Wait()
+	if err != nil {
+    		log.Printf(fmt.Sprint(err) + ": " + stderr.String())
+		log.Fatal(err)
+	} else {
+		log.Printf("Created "+outputName)
+	}
+	done <- true
+}
 
 func main() {
+	dPtr := flag.String("d", "slideDurations.txt", "a file with image names and durations")
+	audioFilenamePtr := flag.String("a", "audio.mp3", "audio file name")
+	outputFilenamePtr := flag.String("o", "finalOut.mp4", "output file name")
+	flag.Parse()
 
-	dat, err := ioutil.ReadFile("slideDurations.txt")
+	videoListFilename := "videoList.txt"
+	silentFilename := "silent.mp4"
+
+	dat, err := ioutil.ReadFile(*dPtr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -17,48 +90,35 @@ func main() {
 	outLines := make([]string,len(lines))
 
 	for i,line := range lines {
-		imgName := strings.Split(line," ")[0]
-		imgDuration := strings.Split(line," ")[1]
-		outLines[i] = "file 'out"+i".mp4'"
+		if line != "" {
+			wg.Add(1)
+	
+			splitLine := strings.Split(line," ")
+			imgName := splitLine[0]
+			imgDuration := splitLine[1]
+			outputName := "out"+strconv.Itoa(i+1)+".mp4"
+			outLines[i] = "file '"+outputName+"'"
 
-		cmd := exec.Command("bash", "-c", "ffmpeg -loop 1 -i "+imgName+" -c:v libx264 -t "+imgDuration+" -pix_fmt yuv420p out"+i+"+.mp4")
-		err := cmd.Start()
-		if err != nil {
-			log.Fatal(err)
+			go img2video(imgName, imgDuration, outputName)
 		}
-
-		log.Printf("Waiting to create out"+i+".mp4 from "+imgName)
-		err = cmd.Wait()
-		log.Printf("Created out"+i+".mp4 from "+imgName)
 	}
 	
 	outData := []byte(strings.Join(outLines,"\n"))
-	err := ioutil.WriteFile("videoList.txt", outData, 0644)
+	err = ioutil.WriteFile(videoListFilename, outData, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cmd := exec.Command("bash", "-c", "ffmpeg -f concat -i videoList.txt -c copy withoutAudio.mp4")
-
-	err := cmd.Start()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("Waiting to create withoutAudio.mp4 using concat")
-	err = cmd.Wait()
-	log.Printf("Created withoutAudio.mp4")
-
-	cmd := exec.Command("bash", "-c", "ffmpeg -i withoutAudio.mp4 -i audio.mp3 -map 0 -map 1 -codec copy -shortest finalVideo.mp4")
-	err := cmd.Start()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("Waiting to create finalVideo.mp4 from withoutAudio.mp4 and audio.mp3")
-	err = cmd.Wait()
-	log.Printf("Created finalVideo.mp4")
+	wg.Wait()
+	done := make(chan bool, 1)
 	
+	go concatVideos(len(lines), videoListFilename, silentFilename, done)
+	
+	<-done
+	
+	go addAudio(silentFilename, *audioFilenamePtr, *outputFilenamePtr, done)
+
+	<-done
 }
 
 

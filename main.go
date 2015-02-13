@@ -9,6 +9,7 @@ import "sync"
 import "strconv"
 import "fmt"
 import "bytes"
+import "os"
 
 var wg sync.WaitGroup
 
@@ -117,6 +118,18 @@ func main() {
 	<-done
 	
 	go addAudio(silentFilename, *audioFilenamePtr, *outputFilenamePtr, done)
+
+	for i,line := range lines {
+		if line != "" {
+			outputFilename := "out"+strconv.Itoa(i+1)+".mp4"
+			err = os.Remove(outputFilename)
+			if err != nil {
+				log.Fatal(err)
+			} else {
+				log.Printf("Deleted "+outputFilename)
+			}
+		}
+	}
 
 	<-done
 }

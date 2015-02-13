@@ -22,14 +22,14 @@ func img2video(imgName string, imgDuration string, outputName string) {
 	if err != nil {
 		log.Fatal(err)
 	} else {
-		log.Printf("Creating "+outputName)
+		log.Printf("Creating " + outputName)
 	}
 	err = cmd.Wait()
 	if err != nil {
-    		log.Printf(fmt.Sprint(err) + ": " + stderr.String())
+		log.Printf(fmt.Sprint(err) + ": " + stderr.String())
 		log.Fatal(err)
 	} else {
-		log.Printf("Created "+outputName)
+		log.Printf("Created " + outputName)
 	}
 }
 
@@ -41,34 +41,34 @@ func concatVideos(numberOfVideos int, listFilename string, outputName string, do
 	if err != nil {
 		log.Fatal(err)
 	} else {
-		log.Printf("Creating "+outputName+" using "+listFilename)
+		log.Printf("Creating " + outputName + " using " + listFilename)
 	}
 	err = cmd.Wait()
 	if err != nil {
-    		log.Printf(fmt.Sprint(err) + ": " + stderr.String())
+		log.Printf(fmt.Sprint(err) + ": " + stderr.String())
 		log.Fatal(err)
 	} else {
-		log.Printf("Created "+outputName)
+		log.Printf("Created " + outputName)
 	}
 	done <- true
 }
 
 func addAudio(silentFilename string, audioFilename string, outputName string, done chan bool) {
 	var stderr bytes.Buffer
-	cmd := exec.Command("ffmpeg", "-i", silentFilename, "-i", audioFilename, "-map", "0:0", "-map", "1:0", "-codec" ,"copy", "-shortest", outputName)
+	cmd := exec.Command("ffmpeg", "-i", silentFilename, "-i", audioFilename, "-map", "0:0", "-map", "1:0", "-codec", "copy", "-shortest", outputName)
 	cmd.Stderr = &stderr
 	err := cmd.Start()
 	if err != nil {
 		log.Fatal(err)
 	} else {
-		log.Printf("Creating "+outputName+" from "+silentFilename+" and "+audioFilename)
+		log.Printf("Creating " + outputName + " from " + silentFilename + " and " + audioFilename)
 	}
 	err = cmd.Wait()
 	if err != nil {
-    		log.Printf(fmt.Sprint(err) + ": " + stderr.String())
+		log.Printf(fmt.Sprint(err) + ": " + stderr.String())
 		log.Fatal(err)
 	} else {
-		log.Printf("Created "+outputName)
+		log.Printf("Created " + outputName)
 	}
 	done <- true
 }
@@ -88,23 +88,23 @@ func main() {
 	}
 
 	lines := strings.Split(string(dat), "\n")
-	outLines := make([]string,len(lines))
+	outLines := make([]string, len(lines))
 
-	for i,line := range lines {
+	for i, line := range lines {
 		if line != "" {
 			wg.Add(1)
-	
-			splitLine := strings.Split(line," ")
+
+			splitLine := strings.Split(line, " ")
 			imgName := splitLine[0]
 			imgDuration := splitLine[1]
-			outputName := "out"+strconv.Itoa(i+1)+".mp4"
-			outLines[i] = "file '"+outputName+"'"
+			outputName := "out" + strconv.Itoa(i+1) + ".mp4"
+			outLines[i] = "file '" + outputName + "'"
 
 			go img2video(imgName, imgDuration, outputName)
 		}
 	}
-	
-	outData := []byte(strings.Join(outLines,"\n"))
+
+	outData := []byte(strings.Join(outLines, "\n"))
 	err = ioutil.WriteFile(videoListFilename, outData, 0644)
 	if err != nil {
 		log.Fatal(err)
@@ -112,26 +112,24 @@ func main() {
 
 	wg.Wait()
 	done := make(chan bool, 1)
-	
+
 	go concatVideos(len(lines), videoListFilename, silentFilename, done)
-	
+
 	<-done
-	
+
 	go addAudio(silentFilename, *audioFilenamePtr, *outputFilenamePtr, done)
 
-	for i,line := range lines {
+	for i, line := range lines {
 		if line != "" {
-			outputFilename := "out"+strconv.Itoa(i+1)+".mp4"
+			outputFilename := "out" + strconv.Itoa(i+1) + ".mp4"
 			err = os.Remove(outputFilename)
 			if err != nil {
 				log.Fatal(err)
 			} else {
-				log.Printf("Deleted "+outputFilename)
+				log.Printf("Deleted " + outputFilename)
 			}
 		}
 	}
 
 	<-done
 }
-
-

@@ -99,14 +99,18 @@ func main() {
 
 			imgName := strings.Split(lines[i], " ")[1]
 			timestamp = nextTimestamp
+			var imgDuration float64
 			if (i == len(lines)-1) || (lines[i+1] == "") {
-				imgDurationFloat := timestamp / 1000.0
+				imgDuration = float64(timestamp) / 1000.0
 			} else {
 				nextLineSplit := strings.Split(lines[i+1], " ")
-				nextTimestamp = strconv.Atoi(nextLineSplit[0])
-				imgDurationFloat := (nextTimestamp - timestamp) / 1000.0
+				nextTimestamp, err := strconv.Atoi(nextLineSplit[0])
+				if err != nil {
+					log.Fatal(err)
+				}
+				imgDuration = float64(nextTimestamp - timestamp) / 1000.0
 			}
-			imgDurationString := strconv.FormatFloat(imgDurationFloat, 'f', 3, 32)
+			imgDurationString := strconv.FormatFloat(imgDuration, 'f', 3, 64)
 			outputName := "out" + strconv.Itoa(i+1) + ".mp4"
 			outLines[i] = "file '" + outputName + "'"
 

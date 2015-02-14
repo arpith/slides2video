@@ -74,7 +74,7 @@ func addAudio(silentFilename string, audioFilename string, outputName string, do
 }
 
 func main() {
-	dPtr := flag.String("d", "slideDurations.txt", "a file with image names and durations")
+	timestampsFilenamePtr := flag.String("t", "timestamps.txt", "a file with timestamps and image names")
 	audioFilenamePtr := flag.String("a", "audio.mp3", "audio file name")
 	outputFilenamePtr := flag.String("o", "finalOut.mp4", "output file name")
 	flag.Parse()
@@ -82,7 +82,7 @@ func main() {
 	videoListFilename := "videoList.txt"
 	silentFilename := "silent.mp4"
 
-	dat, err := ioutil.ReadFile(*dPtr)
+	dat, err := ioutil.ReadFile(*timestampsFilenamePtr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -90,17 +90,27 @@ func main() {
 	lines := strings.Split(string(dat), "\n")
 	outLines := make([]string, len(lines))
 
+	nextTimestamp := 0
+	timestamp := 0
+
 	for i, line := range lines {
 		if line != "" {
 			wg.Add(1)
 
-			splitLine := strings.Split(line, " ")
-			imgName := splitLine[0]
-			imgDuration := splitLine[1]
+			imgName := strings.Split(lines[i], " ")[1]
+			timestamp = nextTimestamp
+			if (i == len(lines)-1) || (lines[i+1] == "") {
+				imgDurationFloat := timestamp / 1000.0
+			} else {
+				nextLineSplit := strings.Split(lines[i+1], " ")
+				nextTimestamp = strconv.Atoi(nextLineSplit[0])
+				imgDurationFloat := (nextTimestamp - timestamp) / 1000.0
+			}
+			imgDurationString := strconv.FormatFloat(imgDurationFloat, 'f', 3, 32)
 			outputName := "out" + strconv.Itoa(i+1) + ".mp4"
 			outLines[i] = "file '" + outputName + "'"
 
-			go img2video(imgName, imgDuration, outputName)
+			go img2video(imgName, imgDurationString, outputName)
 		}
 	}
 

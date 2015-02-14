@@ -90,26 +90,29 @@ func main() {
 	lines := strings.Split(string(dat), "\n")
 	outLines := make([]string, len(lines))
 
-	nextTimestamp := 0
-	timestamp := 0
-
 	for i, line := range lines {
 		if line != "" {
 			wg.Add(1)
+			
+			lineSplit := strings.Split(lines[i], " ")
+			imgName := lineSplit[1]
+			timestamp, err := strconv.Atoi(lineSplit[0])
+			if err != nil {
+				log.Fatal(err)
+			}
 
-			imgName := strings.Split(lines[i], " ")[1]
-			timestamp = nextTimestamp
 			var imgDuration float64
 			if (i == len(lines)-1) || (lines[i+1] == "") {
-				imgDuration = float64(timestamp) / 1000.0
+				imgDuration = float64(timestamp) / 1000
 			} else {
 				nextLineSplit := strings.Split(lines[i+1], " ")
 				nextTimestamp, err := strconv.Atoi(nextLineSplit[0])
 				if err != nil {
 					log.Fatal(err)
 				}
-				imgDuration = float64(nextTimestamp - timestamp) / 1000.0
+				imgDuration = float64(nextTimestamp - timestamp) / 1000
 			}
+
 			imgDurationString := strconv.FormatFloat(imgDuration, 'f', 3, 64)
 			outputName := "out" + strconv.Itoa(i+1) + ".mp4"
 			outLines[i] = "file '" + outputName + "'"

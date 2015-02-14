@@ -2,7 +2,7 @@
 Go script to create a video from slides and audio using ffmpeg. 
 
 ## Usage
-Create a file called slideDurations.txt with each line looking like "imagePath imageDuration" (no quotes). 
+Create a file called timestamps.txt with each line looking like "timestamp imagePath" (no quotes, timestamp in milliseconds). 
 
 This script creates a video for each slide[1] then concatenates them[2] and finally adds the audio[3] to create finalVideo.mp4
 

@@ -55,7 +55,7 @@ func concatVideos(numberOfVideos int, listFilename string, outputName string, do
 
 func addAudio(silentFilename string, audioFilename string, outputName string, done chan bool) {
 	var stderr bytes.Buffer
-	cmd := exec.Command("ffmpeg", "-i", silentFilename, "-i", audioFilename, "-map", "0:0", "-map", "1:0", "-codec", "copy", "-shortest", outputName)
+	cmd := exec.Command("ffmpeg", "-i", silentFilename, "-i", audioFilename, "-map", "0:0", "-map", "1:0", "-c:v", "copy", "-c:a", "libfdk_aac", "-b:a", "128k", "-shortest", outputName)
 	cmd.Stderr = &stderr
 	err := cmd.Start()
 	if err != nil {

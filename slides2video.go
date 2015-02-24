@@ -101,7 +101,9 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-
+			if (i==0) {
+				timestamp = 0;
+			}
 			var imgDuration float64
 			if (i == len(lines)-1) || (lines[i+1] == "") {
 				if (*lengthPtr == 0) {

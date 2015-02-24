@@ -77,6 +77,7 @@ func main() {
 	timestampsFilenamePtr := flag.String("t", "timestamps.txt", "a file with timestamps and image names")
 	audioFilenamePtr := flag.String("a", "audio.mp3", "audio file name")
 	outputFilenamePtr := flag.String("o", "finalOut.mp4", "output file name")
+	lengthPtr := flag.Int("l", 0, "length in milliseconds")
 	flag.Parse()
 
 	videoListFilename := "videoList.txt"
@@ -103,7 +104,11 @@ func main() {
 
 			var imgDuration float64
 			if (i == len(lines)-1) || (lines[i+1] == "") {
-				imgDuration = float64(timestamp) / 1000
+				if (*lengthPtr == 0) {
+					imgDuration = float64(timestamp) / 1000
+				} else {
+					imgDuration = float64(*lengthPtr - timestamp) / 1000
+				}
 			} else {
 				nextLineSplit := strings.Split(lines[i+1], " ")
 				nextTimestamp, err := strconv.Atoi(nextLineSplit[0])
